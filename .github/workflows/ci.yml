@@ -58,7 +58,7 @@ jobs:
           # 1. Compute next version (dry run).
           DRY=$(semantic-release --dry $OPTS 2>&1 || true)
           echo "$DRY"
-          VERSION=$(echo "$DRY" | grep -oiP '(?<=next release version is )\d+\.\d+\.\d+' || true)
+          VERSION=$(echo "$DRY" | grep -oiP '(?<=new version: )\d+\.\d+\.\d+' || true)
           if [ -z "$VERSION" ]; then
             echo "no release"
             exit 0
