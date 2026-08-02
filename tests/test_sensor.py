@@ -34,3 +34,56 @@ async def test_sensor_device_info(hass_with_entry):
 	device = hass.data["device_registry"].async_get(entity_entry.device_id)
 	assert device is not None
 	assert device.name == "Sankt Peter-Ording"
+
+
+@pytest.mark.asyncio
+async def test_forecast_sensor_today(hass_with_entry):
+	hass = hass_with_entry
+	await hass.async_block_till_done()
+
+	eid = f"{_SPO}_wave_height_today"
+	state = hass.states.get(eid)
+	assert state is not None, f"Forecast sensor {eid} not found in {list(hass.states.async_entity_ids())}"
+	assert state.attributes["friendly_name"] == "Sankt Peter-Ording Wave Height Today"
+	assert state.attributes["unit_of_measurement"] == "m"
+	assert state.state == "1.5"
+
+
+@pytest.mark.asyncio
+async def test_forecast_sensor_tomorrow(hass_with_entry):
+	hass = hass_with_entry
+	await hass.async_block_till_done()
+
+	eid = f"{_SPO}_wave_height_tomorrow"
+	state = hass.states.get(eid)
+	assert state is not None, f"Forecast sensor {eid} not found"
+	assert state.attributes["friendly_name"] == "Sankt Peter-Ording Wave Height Tomorrow"
+	assert state.state == "1.0"
+
+
+@pytest.mark.asyncio
+async def test_forecast_sensor_wind_speed_today(hass_with_entry):
+	hass = hass_with_entry
+	await hass.async_block_till_done()
+
+	eid = f"{_SPO}_wind_speed_today"
+	state = hass.states.get(eid)
+	assert state is not None, f"Forecast sensor {eid} not found"
+	assert state.attributes["friendly_name"] == "Sankt Peter-Ording Wind Speed Today"
+	assert state.attributes["unit_of_measurement"] == "kn"
+	assert state.state == "15.0"
+
+
+@pytest.mark.asyncio
+async def test_forecast_sensor_device_info(hass_with_entry):
+	hass = hass_with_entry
+	await hass.async_block_till_done()
+
+	eid = f"{_SPO}_wave_height_today"
+	entity_entry = hass.data["entity_registry"].async_get(eid)
+	assert entity_entry is not None
+	assert entity_entry.device_id is not None
+
+	device = hass.data["device_registry"].async_get(entity_entry.device_id)
+	assert device is not None
+	assert device.name == "Sankt Peter-Ording"

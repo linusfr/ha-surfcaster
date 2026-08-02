@@ -89,6 +89,20 @@ class SensorDef:
 	state_class: str | None = "measurement"
 
 
+FORECAST_DAYS = 7
+
+FORECAST_METRICS: list[dict] = [
+	{"key": "wave_height", "name": "Wave Height", "unit": "m", "device_class": "distance", "icon": "mdi:waves"},
+	{"key": "wave_period", "name": "Wave Period", "unit": "s", "icon": "mdi:timeline-clock"},
+	{
+		"key": "wind_speed",
+		"name": "Wind Speed",
+		"unit": "kn",
+		"device_class": "wind_speed",
+		"icon": "mdi:weather-windy",
+	},
+]
+
 SENSORS: list[SensorDef] = [
 	SensorDef(
 		key_suffix="wave_height",
