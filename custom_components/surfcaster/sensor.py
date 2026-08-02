@@ -13,7 +13,6 @@ from .coordinator import SurfcasterCoordinator
 class SurfcasterSensor(SensorEntity):
 	"""Sensor for a single surf condition metric at one spot."""
 
-	_attr_has_entity_name = True
 	_attr_should_poll = False
 
 	def __init__(
@@ -28,7 +27,7 @@ class SurfcasterSensor(SensorEntity):
 		self._key = sensor_def.key_suffix
 		self._attr_translation_key = sensor_def.key_suffix
 		self._attr_unique_id = f"{spot_id}_{sensor_def.key_suffix}"
-		self._attr_name = sensor_def.name_suffix
+		self._attr_name = f"{spot_name} {sensor_def.name_suffix}"
 		self._attr_native_unit_of_measurement = sensor_def.unit
 		self._attr_icon = sensor_def.icon
 		self._attr_state_class = sensor_def.state_class
