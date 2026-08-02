@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 DOMAIN = "surfcaster"
 NAME = "Surfcaster"
-VERSION = "0.0.0"
+VERSION = "1.5.2"
 
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
