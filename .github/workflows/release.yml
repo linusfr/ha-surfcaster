@@ -1,0 +1,31 @@
+name: release
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Hermit
+        run: curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
+
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          source bin/activate-hermit
+          semantic-release \
+            --allow-no-changes \
+            --provider-opt log_order=ctime \
+            --provider-opt strip_v_tag_prefix=true \
+            --commit-analyzer-opt patch_release_rules=fix,chore(deps)
