@@ -19,26 +19,32 @@ jobs:
       - name: Install Hermit
         run: curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
 
-      - name: Semantic Release
+      - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           source bin/activate-hermit
-          semantic-release \
-            --allow-no-changes \
-            --provider-opt log_order=ctime \
-            --provider-opt strip_v_tag_prefix=true \
-            --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'
+          OPTS="--allow-no-changes --provider-opt log_order=ctime --provider-opt strip_v_tag_prefix=true --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'"
 
-      - name: Inject version
-        if: success()
-        run: |
-          source bin/activate-hermit
-          VERSION=$(git describe --tags --abbrev=0)
+          # 1. Compute next version (dry run).
+          DRY=$(semantic-release --dry $OPTS 2>&1 || true)
+          echo "$DRY"
+          VERSION=$(echo "$DRY" | grep -oiP '(?<=next release version is )\d+\.\d+\.\d+' || true)
+          if [ -z "$VERSION" ]; then
+            echo "no release"
+            exit 0
+          fi
+
+          # 2. Inject version into manifest + const.
           sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$VERSION\"|" custom_components/surfcaster/manifest.json
           sed -i "s|VERSION = \"[^\"]*\"|VERSION = \"$VERSION\"|" custom_components/surfcaster/const.py
+
+          # 3. Commit so the release tag contains correct version + icon.
           git config user.email "github-actions@github.com"
           git config user.name "github-actions"
           git add custom_components/surfcaster/manifest.json custom_components/surfcaster/const.py
-          git commit -m "chore: bump manifest version to $VERSION [skip ci]" || true
+          git commit -m "chore(release): $VERSION [skip ci]" || true
+
+          # 4. Real release — tags THIS commit.
+          semantic-release --provider-opt log_order=ctime --provider-opt strip_v_tag_prefix=true --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'
           git push
