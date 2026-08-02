@@ -149,20 +149,15 @@ async def create_forecast_dashboard(hass: HomeAssistant, spots: dict[str, dict])
 
 	config = build_surf_dashboard(spots)
 
-	# Find or create the dashboard entry in the dashboards collection
-	dashboards_collection = getattr(lovelace, "dashboards", None)
-	if dashboards_collection is None:
-		_LOGGER.warning("Cannot access dashboards collection")
-		return False
-
+	# Find existing dashboard entry or create a new one.
 	dashboard_id = None
-	for db_id, db in lovelace.dashboards_data.items():
-		if db.get("url_path") == url_path:
-			dashboard_id = db_id
+	for item in lovelace.async_items():
+		if item.get("url_path") == url_path:
+			dashboard_id = item["id"]
 			break
 
 	if dashboard_id is None:
-		new_item = await dashboards_collection.async_create_item(
+		new_item = await lovelace.async_create_item(
 			{
 				"url_path": url_path,
 				"title": "Surf Forecast",
