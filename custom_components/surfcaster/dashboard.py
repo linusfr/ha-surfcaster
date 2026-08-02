@@ -71,7 +71,7 @@ def _apex(entity_slug: str, spot_title: str) -> dict:
 		],
 		"apex_config": {
 			"chart": {"height": 220, "toolbar": {"show": False}},
-			"xaxis": {"type": "datetime", "tickAmount": 7, "labels": {"format": "E dd"}},
+			"xaxis": {"type": "datetime", "tickAmount": 7, "labels": {"format": "ddd dd"}},
 			"stroke": {"curve": "smooth"},
 			"grid": {"borderColor": "#333"},
 			"theme": {"mode": "dark"},
