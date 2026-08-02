@@ -96,8 +96,6 @@ class SurfcasterForecastSensor(SensorEntity):
 		self._attr_icon = metric.get("icon")
 		if metric.get("device_class"):
 			self._attr_device_class = SensorDeviceClass(metric["device_class"])
-		if day_offset >= 3:
-			self._attr_entity_registry_enabled_default = False
 		self._attr_device_info = DeviceInfo(
 			identifiers={(DOMAIN, spot_id)},
 			name=spot_name,
