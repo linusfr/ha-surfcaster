@@ -43,6 +43,7 @@ class SurfcasterCoordinator(DataUpdateCoordinator[dict[str, SpotConditions]]):
 		self._session = async_get_clientsession(hass)
 		self._timeout = aiohttp.ClientTimeout(total=API_TIMEOUT)
 		self._forecasts: dict[str, dict[str, list[float | None]]] = {}
+		self._series: dict[str, list[dict[str, float | None]]] = {}
 
 	async def _async_update_data(self) -> dict[str, SpotConditions]:
 		"""Fetch marine and wind data for all spots concurrently."""
@@ -73,9 +74,14 @@ class SurfcasterCoordinator(DataUpdateCoordinator[dict[str, SpotConditions]]):
 			raise UpdateFailed("All surf spots failed to fetch")
 
 		self._forecasts = {}
+		self._series = {}
 		for spot_id in data:
 			if spot_id in raw_marine:
 				self._forecasts[spot_id] = _compute_forecast(
+					raw_marine[spot_id].get("hourly", {}),
+					raw_weather[spot_id].get("hourly", {}),
+				)
+				self._series[spot_id] = _build_series(
 					raw_marine[spot_id].get("hourly", {}),
 					raw_weather[spot_id].get("hourly", {}),
 				)
@@ -138,6 +144,45 @@ class SurfcasterCoordinator(DataUpdateCoordinator[dict[str, SpotConditions]]):
 		if day_offset < len(vals):
 			return vals[day_offset]
 		return None
+
+	def get_series(self, spot_id: str) -> list[dict[str, float | None]] | None:
+		"""Return the full hourly forecast series for a spot, or None if missing."""
+		return self._series.get(spot_id)
+
+
+def _build_series(marine_hourly: dict, weather_hourly: dict) -> list[dict[str, float | None]]:
+	"""Build hourly forecast series from marine + weather raw data.
+
+	Returns a list of dicts with compact keys suitable for apexcharts:
+	t=datetime, h=wave_height, p=wave_period, wd=wave_direction,
+	ws=wind_speed, wdir=wind_direction.
+	"""
+	times = marine_hourly.get("time", [])
+	if not times:
+		return []
+
+	wh = marine_hourly.get("wave_height", [])
+	wp = marine_hourly.get("wave_period", [])
+	wdir = marine_hourly.get("wave_direction", [])
+	ws = weather_hourly.get("wind_speed_10m", [])
+	wd = weather_hourly.get("wind_direction_10m", [])
+
+	series: list[dict[str, float | None]] = []
+	m = max(len(times), len(wh), len(wp), len(wdir), len(ws), len(wd))
+	for i in range(m):
+		point: dict[str, float | None] = {"t": times[i] if i < len(times) else None}
+		if i < len(wh):
+			point["h"] = round(wh[i], 1) if wh[i] is not None else None
+		if i < len(wp):
+			point["p"] = round(wp[i], 1) if wp[i] is not None else None
+		if i < len(wdir):
+			point["wd"] = round(wdir[i], 1) if wdir[i] is not None else None
+		if i < len(ws):
+			point["ws"] = round(ws[i], 1) if ws[i] is not None else None
+		if i < len(wd):
+			point["wdi"] = round(wd[i], 1) if wd[i] is not None else None
+		series.append(point)
+	return series
 
 
 def _compute_forecast(marine_hourly: dict, weather_hourly: dict) -> dict[str, list[float | None]]:

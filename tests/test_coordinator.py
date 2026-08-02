@@ -5,6 +5,7 @@ import pytest
 from custom_components.surfcaster.const import DEFAULT_SPOTS
 from custom_components.surfcaster.coordinator import (
 	SurfcasterCoordinator,
+	_build_series,
 	_compute_forecast,
 	_current_or_none,
 	_daily_max,
@@ -122,3 +123,44 @@ async def test_coordinator_forecast(hass, spots):
 
 	assert coordinator.get_forecast("spo", "wave_height", 9) is None
 	assert coordinator.get_forecast("spo", "nonexistent", 0) is None
+
+
+def test_build_series():
+	marine = {
+		"time": ["2026-08-02T00:00", "2026-08-02T01:00"],
+		"wave_height": [1.2, 1.5],
+		"wave_period": [8.0, 9.0],
+		"wave_direction": [280.0, 290.0],
+	}
+	weather = {
+		"time": ["2026-08-02T00:00", "2026-08-02T01:00"],
+		"wind_speed_10m": [12.0, 15.0],
+		"wind_direction_10m": [180.0, 200.0],
+	}
+
+	result = _build_series(marine, weather)
+	assert len(result) == 2
+	assert result[0]["t"] == "2026-08-02T00:00"
+	assert result[0]["h"] == 1.2
+	assert result[0]["p"] == 8.0
+	assert result[0]["wd"] == 280.0
+	assert result[0]["ws"] == 12.0
+	assert result[0]["wdi"] == 180.0
+
+
+def test_build_series_empty():
+	assert _build_series({}, {}) == []
+
+
+@pytest.mark.asyncio
+async def test_coordinator_series(hass, spots):
+	coordinator = SurfcasterCoordinator(hass, spots)
+	await coordinator._async_update_data()
+
+	series = coordinator.get_series("spo")
+	assert series is not None
+	assert len(series) > 0
+	assert "h" in series[0]
+	assert "t" in series[0]
+
+	assert coordinator.get_series("nonexistent") is None

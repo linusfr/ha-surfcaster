@@ -1,5 +1,7 @@
 """Sensor platform for Surfcaster."""
 
+from typing import Any
+
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -126,6 +128,65 @@ class SurfcasterForecastSensor(SensorEntity):
 		)
 
 
+class SurfcasterSeriesSensor(SensorEntity):
+	"""Sensor exposing the full hourly forecast series as an attribute.
+
+	State is current wave height. The ``forecast`` attribute holds the
+	full 7-day hourly time series for apexcharts ``data_generator``.
+	"""
+
+	_attr_should_poll = False
+
+	def __init__(
+		self,
+		coordinator: SurfcasterCoordinator,
+		spot_id: str,
+		spot_name: str,
+	) -> None:
+		"""Initialize series sensor."""
+		self._spot_id = spot_id
+		self._attr_unique_id = f"{spot_id}_forecast_series"
+		self._attr_name = f"{spot_name} Forecast"
+		self._attr_icon = "mdi:waves"
+		self._attr_native_unit_of_measurement = "m"
+		self._attr_device_info = DeviceInfo(
+			identifiers={(DOMAIN, spot_id)},
+			name=spot_name,
+			manufacturer="Open-Meteo",
+			model="Marine API",
+		)
+		self.coordinator = coordinator
+
+	@property
+	def available(self) -> bool:
+		"""Return False when coordinator failed or spot data missing."""
+		if not super().available:
+			return False
+		return self._spot_id in (self.coordinator.data or {})
+
+	@property
+	def native_value(self) -> float | None:
+		"""Return current wave height as the sensor state."""
+		if self.coordinator.data is None:
+			return None
+		conditions: SpotConditions | None = self.coordinator.data.get(self._spot_id)
+		if conditions is None:
+			return None
+		return conditions.wave_height
+
+	@property
+	def extra_state_attributes(self) -> dict[str, Any]:
+		"""Expose the full hourly forecast series."""
+		series = self.coordinator.get_series(self._spot_id)
+		return {"forecast": series} if series else {}
+
+	async def async_added_to_hass(self) -> None:
+		"""Register callbacks."""
+		self.async_on_remove(
+			self.coordinator.async_add_listener(self.async_write_ha_state),
+		)
+
+
 async def async_setup_entry(
 	hass: HomeAssistant,
 	entry: ConfigEntry,
@@ -134,7 +195,7 @@ async def async_setup_entry(
 	"""Set up Surfcaster sensors."""
 	coordinator: SurfcasterCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-	entities: list[SurfcasterSensor | SurfcasterForecastSensor] = []
+	entities: list[SurfcasterSensor | SurfcasterForecastSensor | SurfcasterSeriesSensor] = []
 	for spot_id in coordinator.spots:
 		spot = coordinator.spots[spot_id]
 		spot_name = spot.get("name", spot_id)
@@ -143,5 +204,6 @@ async def async_setup_entry(
 		for metric in FORECAST_METRICS:
 			for day_offset in range(FORECAST_DAYS):
 				entities.append(SurfcasterForecastSensor(coordinator, spot_id, spot_name, metric, day_offset))
+		entities.append(SurfcasterSeriesSensor(coordinator, spot_id, spot_name))
 
 	async_add_entities(entities)

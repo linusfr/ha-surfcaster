@@ -87,3 +87,23 @@ async def test_forecast_sensor_device_info(hass_with_entry):
 	device = hass.data["device_registry"].async_get(entity_entry.device_id)
 	assert device is not None
 	assert device.name == "Sankt Peter-Ording"
+
+
+@pytest.mark.asyncio
+async def test_series_sensor(hass_with_entry):
+	hass = hass_with_entry
+	await hass.async_block_till_done()
+
+	eid = f"{_SPO}_forecast"
+	state = hass.states.get(eid)
+	assert state is not None, f"Series sensor {eid} not found"
+	assert state.state == "1.2"
+	assert state.attributes["friendly_name"] == "Sankt Peter-Ording Forecast"
+	assert state.attributes["unit_of_measurement"] == "m"
+
+	forecast = state.attributes.get("forecast")
+	assert forecast is not None
+	assert isinstance(forecast, list)
+	assert len(forecast) > 0
+	assert "h" in forecast[0]
+	assert "t" in forecast[0]
