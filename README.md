@@ -45,7 +45,7 @@ Add your own spots in the integration options — any lat/lon that Open-Meteo co
 
 ```bash
 cd /path/to/your/config
-git clone https://github.com/linusfrotscher/ha-surfcaster custom_components/surfcaster
+git clone https://github.com/linusfr/ha-surfcaster.git custom_components/surfcaster
 ```
 
 Then restart Home Assistant.
