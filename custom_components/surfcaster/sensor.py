@@ -187,6 +187,71 @@ class SurfcasterSeriesSensor(SensorEntity):
 		)
 
 
+class SurfcasterTideSensor(SensorEntity):
+	"""Sensor for tide predictions — next high/low times and heights."""
+
+	_attr_should_poll = False
+
+	def __init__(
+		self,
+		coordinator: SurfcasterCoordinator,
+		spot_id: str,
+		spot_name: str,
+	) -> None:
+		"""Initialize tide sensor."""
+		self._spot_id = spot_id
+		self._attr_unique_id = f"{spot_id}_tide"
+		self._attr_name = f"{spot_name} Tide"
+		self._attr_icon = "mdi:waves-arrow-up"
+		self._attr_native_unit_of_measurement = "m"
+		self._attr_device_info = DeviceInfo(
+			identifiers={(DOMAIN, spot_id)},
+			name=spot_name,
+			manufacturer="Open-Meteo",
+			model="Marine API",
+		)
+		self.coordinator = coordinator
+
+	@property
+	def available(self) -> bool:
+		"""Available when coordinator has data."""
+		if not super().available:
+			return False
+		return self._spot_id in (self.coordinator.data or {})
+
+	@property
+	def native_value(self) -> float | None:
+		"""Return current tide height (nearest extreme)."""
+		tides = self.coordinator.get_tides(self._spot_id)
+		if not tides:
+			return None
+		now = __import__("time").time()
+		nearest = min(tides, key=lambda e: abs(e.dt - now), default=None)
+		return nearest.height if nearest else None
+
+	@property
+	def extra_state_attributes(self) -> dict[str, Any]:
+		"""Expose tide extremes."""
+		now = __import__("time").time()
+		tides = list(self.coordinator.get_tides(self._spot_id))
+		future = [t for t in tides if t.dt > now]
+		result: dict[str, Any] = {"extremes": [{"dt": t.dt, "height": t.height, "type": t.type} for t in tides[:16]]}
+		if future:
+			highs = [t for t in future if t.type == "High"]
+			lows = [t for t in future if t.type == "Low"]
+			if highs:
+				result["next_high"] = {"dt": highs[0].dt, "height": highs[0].height}
+			if lows:
+				result["next_low"] = {"dt": lows[0].dt, "height": lows[0].height}
+		return result
+
+	async def async_added_to_hass(self) -> None:
+		"""Register callbacks."""
+		self.async_on_remove(
+			self.coordinator.async_add_listener(self.async_write_ha_state),
+		)
+
+
 async def async_setup_entry(
 	hass: HomeAssistant,
 	entry: ConfigEntry,
@@ -195,7 +260,7 @@ async def async_setup_entry(
 	"""Set up Surfcaster sensors."""
 	coordinator: SurfcasterCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-	entities: list[SurfcasterSensor | SurfcasterForecastSensor | SurfcasterSeriesSensor] = []
+	entities: list[SurfcasterSensor | SurfcasterForecastSensor | SurfcasterSeriesSensor | SurfcasterTideSensor] = []
 	for spot_id in coordinator.spots:
 		spot = coordinator.spots[spot_id]
 		spot_name = spot.get("name", spot_id)
@@ -205,5 +270,6 @@ async def async_setup_entry(
 			for day_offset in range(FORECAST_DAYS):
 				entities.append(SurfcasterForecastSensor(coordinator, spot_id, spot_name, metric, day_offset))
 		entities.append(SurfcasterSeriesSensor(coordinator, spot_id, spot_name))
+		entities.append(SurfcasterTideSensor(coordinator, spot_id, spot_name))
 
 	async_add_entities(entities)

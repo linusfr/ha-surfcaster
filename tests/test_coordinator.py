@@ -164,3 +164,15 @@ async def test_coordinator_series(hass, spots):
 	assert "t" in series[0]
 
 	assert coordinator.get_series("nonexistent") is None
+
+
+def test_interp_tide():
+	from custom_components.surfcaster.coordinator import _interp_tide
+
+	extremes = {1000: 2.0, 2000: 1.0, 3000: 3.0}
+	assert _interp_tide("1970-01-01T00:16:40", extremes) == 2.0  # t=1000
+	assert _interp_tide("1970-01-01T00:25:00", extremes) == 1.5  # t=1500, mid
+	assert _interp_tide("1970-01-01T00:33:20", extremes) == 1.0  # t=2000
+	assert _interp_tide("1970-01-01T00:50:00", extremes) == 3.0  # t=3000
+	assert _interp_tide("1970-01-01T00:00:00", extremes) == 2.0  # before first
+	assert _interp_tide("1970-01-01T01:00:00", extremes) == 3.0  # after last

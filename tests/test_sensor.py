@@ -107,3 +107,16 @@ async def test_series_sensor(hass_with_entry):
 	assert len(forecast) > 0
 	assert "h" in forecast[0]
 	assert "t" in forecast[0]
+
+
+@pytest.mark.asyncio
+async def test_tide_sensor(hass_with_entry):
+	hass = hass_with_entry
+	await hass.async_block_till_done()
+
+	eid = f"{_SPO}_tide"
+	state = hass.states.get(eid)
+	assert state is not None, f"Tide sensor {eid} not found"
+	assert state.attributes["friendly_name"] == "Sankt Peter-Ording Tide"
+	assert state.attributes["unit_of_measurement"] == "m"
+	assert state.state == "unknown"  # no API key → no tide data

@@ -14,6 +14,7 @@ CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_NAME = "name"
 CONF_SPOTS = "spots"
+CONF_TIDE_API_KEY = "tide_api_key"
 
 DEFAULT_SPOTS = {
 	"spo": {
@@ -61,6 +62,21 @@ WEATHER_PARAMS = "wind_speed_10m,wind_direction_10m"
 
 API_TIMEOUT = 15
 UPDATE_INTERVAL_MINUTES = 30
+TIDE_INTERVAL_HOURS = 6
+
+TIDE_URL = "https://www.worldtides.info/api/v3"
+
+TIDE_PARAMS = "extremes"
+TIDE_LENGTH = 604800  # 7 days in seconds
+
+
+@dataclass
+class TideExtreme:
+	"""A single high or low tide prediction."""
+
+	dt: int  # unix timestamp
+	height: float  # metres
+	type: str  # "High" or "Low"
 
 
 @dataclass

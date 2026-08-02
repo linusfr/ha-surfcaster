@@ -1,0 +1,6 @@
+create_dashboard:
+  name: Create forecast dashboard
+  description: >-
+    Creates a "Surf Forecast" dashboard with per-spot 7-day apexcharts
+    (wave height, period, wind speed). Requires apexcharts-card from HACS.
+    Call once after adding spots; safe to re-run to refresh spot list.

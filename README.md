@@ -13,9 +13,9 @@ up as Home Assistant sensors. No API key needed — Open-Meteo is free and open.
 | Wave height | How big the surf is right now |
 | Wave period | Seconds between sets — longer = more powerful |
 | Wave direction | Where the swell is coming from |
-| Swell height / period / direction | Clean swell component minus wind chop |
 | Wind speed & direction | Onshore mess or offshore glass? |
-| Water temperature | Wetsuit or boardies? |
+| 7-day daily max forecast | Peak each day for wave height, period, wind |
+| Hourly forecast series | Full 168-hour time series (for apexcharts graph) |
 
 ## Default Spots
 
@@ -54,11 +54,24 @@ Then restart Home Assistant.
 
 1. Go to **Settings > Devices & Services > Add Integration**
 2. Search for "Surfcaster"
-3. Select which spots to monitor (all four defaults are pre-selected)
+3. Select which spots to monitor (all defaults are pre-selected)
 4. Sensors appear — one entity per metric per spot
 
 Update interval: **30 minutes**. Open-Meteo updates its marine model every 6 hours,
 so this is plenty.
+
+### Recorder
+
+The forecast series sensors carry large attribute payloads (168 hourly data points).
+Exclude them from the recorder to keep your database lean:
+
+```yaml
+# configuration.yaml
+recorder:
+  exclude:
+    entity_globs:
+      - sensor.*_forecast
+```
 
 ## Automation Ideas
 
@@ -98,39 +111,27 @@ action:
 
 ## Dashboard
 
-Surfcaster ships a custom Lovelace card. Add it as a dashboard resource in HACS (it registers automatically)
-or manually at `/hacsfiles/surfcaster/surfcaster-card.js` (type: `module`).
+Surfcaster **auto-creates** a forecast dashboard when the integration is first
+set up. The dashboard appears in your sidebar as "Surf Forecast" with two views
+(North Sea / Baltic Sea), each showing one apexcharts card per spot with wave
+height (filled area), wave period (line), and wind speed (line) over a 7-day
+3-hourly forecast.
 
-Then add this to any dashboard:
+### Prerequisites
 
-```yaml
-type: custom:surfcaster-card
-spot: spo
+Install [apexcharts-card](https://github.com/RomRider/apexcharts-card) from
+HACS **before** adding the Surfcaster integration, or the cards will show as
+"custom element not found" until you install it and refresh.
+
+```
+HACS → Frontend → apexcharts-card
 ```
 
-The card shows current wave height, period, wind, and the forecast-peak Max value — colour-coded at a glance.
+### Rebuilding
 
-**Native alternative** (no custom card needed):
-
-```yaml
-type: horizontal-stack
-cards:
-  - type: tile
-    entity: sensor.spo_wave_height
-    name: SPO
-    icon: mdi:waves
-    vertical: true
-  - type: tile
-    entity: sensor.spo_wave_period
-    name: Period
-    icon: mdi:timeline-clock
-    vertical: true
-  - type: tile
-    entity: sensor.spo_wind_speed
-    name: Wind
-    icon: mdi:weather-windy
-    vertical: true
-```
+If you change your spot selection later, call the service
+`surfcaster.create_dashboard` (Developer Tools → Services) to rebuild the
+dashboard with the updated spot list.
 
 ## Blueprint
 
@@ -174,14 +175,19 @@ custom_components/surfcaster/
 ├── const.py         # Constants, default spots, sensor attributes
 ├── config_flow.py   # UI config flow (select spots)
 ├── coordinator.py   # DataUpdateCoordinator — polls Open-Meteo every 30min
-└── sensor.py        # Sensor platform — one entity per metric per spot
+└── sensor.py        # Sensor platform — per-spot sensors + forecast series
 blueprints/
 └── automation/surfcaster-surf-weekend-check.yaml
-surfcaster-card.js   # Custom Lovelace card
+surfcaster-card.js   # Legacy custom card (prefer apexcharts)
 ```
 
-Each spot gets its own set of sensors, driven by a single coordinator per config entry.
-The blueprint ships a pre-built weekend-check automation.
+Each spot gets:
+- **8 current-condition sensors** (wave height/period/direction/max, wind speed/direction/max)
+- **21 daily-max forecast sensors** (wave height/period/wind × 7 days)
+- **1 forecast series sensor** (`sensor.<spot>_forecast`) with the full 7-day hourly time series as an attribute — built for apexcharts `data_generator`
+
+A single `DataUpdateCoordinator` fetches both Open-Meteo Marine and Weather APIs
+concurrently for all spots. The blueprint ships a pre-built weekend-check automation.
 
 ## License
 
