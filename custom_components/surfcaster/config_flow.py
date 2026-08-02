@@ -73,11 +73,13 @@ class SurfcasterOptionsFlow(config_entries.OptionsFlow):
 				opts[CONF_TIDE_API_KEY] = tide_key
 			return self.async_create_entry(data=opts)
 
-		current_spots = list(self.config_entry.data.get(CONF_SPOTS, {}).keys())
-		current_opts = self.config_entry.options or {}
-		current_key = current_opts.get(CONF_TIDE_API_KEY, "")
+		entry = self.config_entry
+		data = entry.data if entry else {}
+		opts = entry.options if entry else {}
+		current_spots = list(data.get(CONF_SPOTS, {}).keys())
+		current_key = opts.get(CONF_TIDE_API_KEY, "")
 		if not current_key:
-			current_key = self.config_entry.data.get(CONF_TIDE_API_KEY, "")
+			current_key = data.get(CONF_TIDE_API_KEY, "")
 
 		schema_dict: dict[vol.Required | vol.Optional, Any] = {
 			vol.Required(CONF_SPOTS, default=current_spots): SelectSelector(
