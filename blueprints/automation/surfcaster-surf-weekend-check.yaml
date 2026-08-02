@@ -1,0 +1,117 @@
+blueprint:
+  name: Surf Weekend Check
+  description: "Friday morning: checks all Surfcaster spots and notifies if any have surfable waves this weekend."
+  domain: automation
+  input:
+    surf_spots:
+      name: Surf spot wave height sensors
+      description: >-
+        Pick the wave_height sensor for each spot. The blueprint derives
+        wave_period and wind_speed by replacing 'wave_height' in the entity_id,
+        so the companion sensors must follow the same naming pattern
+        (e.g. sensor.spo_wave_height → sensor.spo_wave_period / sensor.spo_wind_speed).
+      selector:
+        entity:
+          domain: sensor
+          multiple: true
+    min_wave_height:
+      name: Minimum wave height (m)
+      description: Waves shorter than this don't count.
+      default: 1.0
+      selector:
+        number:
+          min: 0.1
+          max: 10.0
+          step: 0.1
+          mode: slider
+    min_wave_period:
+      name: Minimum wave period (s)
+      description: Clean waves need longer period.
+      default: 8
+      selector:
+        number:
+          min: 3
+          max: 20
+          step: 1
+          mode: slider
+    max_wind_speed:
+      name: Maximum wind speed (kn)
+      description: Too much wind ruins the surf.
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 40
+          step: 1
+          mode: slider
+    check_day:
+      name: Check day
+      description: Day of the week to run the check.
+      default: fri
+      selector:
+        select:
+          options:
+            - label: Monday
+              value: mon
+            - label: Tuesday
+              value: tue
+            - label: Wednesday
+              value: wed
+            - label: Thursday
+              value: thu
+            - label: Friday
+              value: fri
+            - label: Saturday
+              value: sat
+            - label: Sunday
+              value: sun
+    check_time:
+      name: Check time
+      description: Time of day to run the check.
+      default: "08:00:00"
+      selector:
+        time: {}
+    notify_service:
+      name: Notification service
+      description: How to notify you. E.g. notify.pushover or notify.mobile_app_your_phone.
+      default: notify.persistent_notification
+      selector:
+        text: {}
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time
+    at: !input check_time
+
+conditions:
+  - condition: time
+    weekday:
+      - !input check_day
+
+actions:
+  - variables:
+      spots: >
+        {% set ns = namespace(lines=[]) %}
+        {% set checks = !input surf_spots %}
+        {% for entity_id in checks %}
+          {% set wh = states(entity_id) | float(-1) %}
+          {% set wp_id = entity_id | replace('wave_height', 'wave_period') %}
+          {% set ws_id = entity_id | replace('wave_height', 'wind_speed') %}
+          {% set wp = states(wp_id) | float(-1) %}
+          {% set ws = states(ws_id) | float(99) %}
+          {% if wh >= !input min_wave_height and wp >= !input min_wave_period and ws <= !input max_wind_speed %}
+            {% set spot_name = state_attr(entity_id, 'friendly_name') | replace(' Wave Height', '') %}
+            {% set ns.lines = ns.lines + [spot_name ~ ': ' ~ wh ~ 'm / ' ~ wp ~ 's / ' ~ ws ~ ' kn'] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.lines }}
+  - if:
+      - condition: template
+        value_template: "{{ spots | length > 0 }}"
+    then:
+      - action: !input notify_service
+        data:
+          title: "Surf this weekend!"
+          message: "{{ spots | join('\n') }}"

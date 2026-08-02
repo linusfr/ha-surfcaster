@@ -1,0 +1,7 @@
+{
+	"name": "Surfcaster",
+	"render_readme": true,
+	"blueprints": {
+		"surf_weekend_check": "blueprints/automation/surfcaster-surf-weekend-check.yaml"
+	}
+}

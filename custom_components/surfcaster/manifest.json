@@ -1,0 +1,11 @@
+{
+  "domain": "surfcaster",
+  "name": "Surfcaster",
+  "codeowners": ["@linusfrotscher"],
+  "config_flow": true,
+  "documentation": "https://github.com/linusfrotscher/ha-surfcaster",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/linusfrotscher/ha-surfcaster/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

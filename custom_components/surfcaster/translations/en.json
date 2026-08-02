@@ -1,0 +1,27 @@
+{
+	"config": {
+		"error": {
+			"no_spots_selected": "Select at least one surf spot."
+		},
+		"step": {
+			"user": {
+				"title": "Surfcaster",
+				"description": "Pick the surf spots you want to monitor.",
+				"data": {
+					"spots": "Spots"
+				}
+			}
+		}
+	},
+	"options": {
+		"step": {
+			"init": {
+				"title": "Surfcaster Options",
+				"description": "Add or remove surf spots.",
+				"data": {
+					"spots": "Spots"
+				}
+			}
+		}
+	}
+}
