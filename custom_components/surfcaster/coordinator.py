@@ -263,7 +263,7 @@ def _interp_tide(iso: str, extremes: dict[int, float]) -> float | None:
 		from datetime import UTC, datetime
 
 		t = datetime.fromisoformat(iso).replace(tzinfo=UTC).timestamp()
-	except (ValueError, OSError):
+	except ValueError, OSError:
 		return None
 
 	sorted_ts = sorted(extremes.keys())
