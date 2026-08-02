@@ -28,4 +28,4 @@ jobs:
             --allow-no-changes \
             --provider-opt log_order=ctime \
             --provider-opt strip_v_tag_prefix=true \
-            --commit-analyzer-opt patch_release_rules=fix,chore(deps)
+            --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'
