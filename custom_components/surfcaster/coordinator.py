@@ -54,6 +54,11 @@ class SurfcasterCoordinator(DataUpdateCoordinator[dict[str, SpotConditions]]):
 		self._tides: dict[str, list[TideExtreme]] = {}
 		self._tide_last_fetch: dict[str, float] = {}
 
+	@property
+	def has_tides(self) -> bool:
+		"""True when a tide API key is configured."""
+		return bool(self._tide_api_key)
+
 	async def _async_update_data(self) -> dict[str, SpotConditions]:
 		"""Fetch marine and wind data for all spots concurrently."""
 		sem = asyncio.Semaphore(_MAX_CONCURRENT)

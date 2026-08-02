@@ -270,6 +270,7 @@ async def async_setup_entry(
 			for day_offset in range(FORECAST_DAYS):
 				entities.append(SurfcasterForecastSensor(coordinator, spot_id, spot_name, metric, day_offset))
 		entities.append(SurfcasterSeriesSensor(coordinator, spot_id, spot_name))
-		entities.append(SurfcasterTideSensor(coordinator, spot_id, spot_name))
+		if coordinator.has_tides:
+			entities.append(SurfcasterTideSensor(coordinator, spot_id, spot_name))
 
 	async_add_entities(entities)
