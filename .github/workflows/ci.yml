@@ -53,10 +53,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           source bin/activate-hermit
-          semantic-release \
-            --provider-opt log_order=ctime \
-            --provider-opt strip_v_tag_prefix=true \
-            --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)' \
-            --update custom_components/surfcaster/const.py \
-            --update custom_components/surfcaster/manifest.json
-          git push
+          OPTS="--allow-no-changes --provider-opt log_order=ctime --provider-opt strip_v_tag_prefix=true --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'"
+
+          # 1. Compute next version.
+          DRY=$(semantic-release --dry $OPTS 2>&1 || true)
+          echo "$DRY"
+          VERSION=$(echo "$DRY" | grep -oiP '(?<=new version: )\d+\.\d+\.\d+' || true)
+          if [ -z "$VERSION" ]; then echo "no release"; exit 0; fi
+
+          # 2. Inject version into manifest + const.
+          sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$VERSION\"|" custom_components/surfcaster/manifest.json
+          sed -i "s|VERSION = \"[^\"]*\"|VERSION = \"$VERSION\"|" custom_components/surfcaster/const.py
+
+          # 3. Commit + tag + push. Tag contains correct version + icon.
+          git config user.email "github-actions@github.com"
+          git config user.name "github-actions"
+          git add custom_components/surfcaster/manifest.json custom_components/surfcaster/const.py
+          git commit -m "chore(release): $VERSION [skip ci]"
+          git tag "$VERSION"
+          git push origin main
+          git push origin "$VERSION"

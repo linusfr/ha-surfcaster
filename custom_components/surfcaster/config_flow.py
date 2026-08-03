@@ -53,12 +53,9 @@ class SurfcasterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 			errors=errors,
 		)
 
-	@staticmethod
 	@callback
-	def async_get_options_flow(config_entry):
-		flow = SurfcasterOptionsFlow()
-		flow.config_entry = config_entry
-		return flow
+	def async_get_options_flow(self, config_entry):
+		return SurfcasterOptionsFlow()
 
 
 class SurfcasterOptionsFlow(config_entries.OptionsFlow):
