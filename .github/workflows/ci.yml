@@ -65,11 +65,11 @@ jobs:
           sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$VERSION\"|" custom_components/surfcaster/manifest.json
           sed -i "s|VERSION = \"[^\"]*\"|VERSION = \"$VERSION\"|" custom_components/surfcaster/const.py
 
-          # 3. Commit + tag + push. Tag contains correct version + icon.
+          # 3. Commit + tag. Push tag only (release zipball).
+          # Commit with [skip ci] stays local — pushed on next run.
           git config user.email "github-actions@github.com"
           git config user.name "github-actions"
           git add custom_components/surfcaster/manifest.json custom_components/surfcaster/const.py
-          git commit -m "chore(release): $VERSION"
+          git commit -m "chore(release): $VERSION [skip ci]"
           git tag "$VERSION"
-          git push origin main
           git push origin "$VERSION"
