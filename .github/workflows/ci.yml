@@ -61,22 +61,29 @@ jobs:
           VERSION=$(echo "$DRY" | grep -oiP '(?<=new version: )\d+\.\d+\.\d+' || true)
           if [ -z "$VERSION" ]; then echo "no release"; exit 0; fi
 
-          # 2. Inject version into manifest + const so the release tarball
-          #    (source archive HACS downloads) carries the right version + icon.
+          # 2. Idempotent: if the release already exists, nothing to do.
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "release $VERSION already exists"; exit 0
+          fi
+
+          # 3. Inject version into manifest + const so the source tarball
+          #    HACS downloads carries the right version + icon.
           sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$VERSION\"|" custom_components/surfcaster/manifest.json
           sed -i "s|VERSION = \"[^\"]*\"|VERSION = \"$VERSION\"|" custom_components/surfcaster/const.py
 
-          # 3. Commit the bump and push to main. NO [skip ci] — that would
-          #    cancel this very run before the release is cut.
+          # 4. Commit the bump only if it actually changed something
+          #    (a prior interrupted run may have committed it already).
           git config user.email "github-actions@github.com"
           git config user.name "github-actions"
           git add custom_components/surfcaster/manifest.json custom_components/surfcaster/const.py
-          git commit -m "chore(release): $VERSION"
-          git push origin HEAD:main
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): $VERSION"
+            git push origin HEAD:main
+          fi
 
-          # 4. Cut the GitHub Release + tag AT this commit. The tag sits on
-          #    the chore(release) commit, so the follow-up run this push
-          #    triggers finds 0 releasable commits and exits — no loop.
+          # 5. Cut the GitHub Release + tag AT the current commit (now carries
+          #    the version + icon). Tag sits on that commit, so the follow-up
+          #    run finds 0 releasable commits and exits — no loop.
           gh release create "$VERSION" \
             --target "$(git rev-parse HEAD)" \
             --title "$VERSION" \
