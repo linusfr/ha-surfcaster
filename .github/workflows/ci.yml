@@ -53,7 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           source bin/activate-hermit
-          OPTS="--allow-no-changes --provider-opt log_order=ctime --provider-opt strip_v_tag_prefix=true --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'"
+          OPTS="--provider-opt log_order=ctime --provider-opt strip_v_tag_prefix=true --commit-analyzer-opt 'patch_release_rules=fix,chore(deps)'"
 
           # 1. Compute next version.
           DRY=$(semantic-release --dry $OPTS 2>&1 || true)
@@ -69,7 +69,7 @@ jobs:
           git config user.email "github-actions@github.com"
           git config user.name "github-actions"
           git add custom_components/surfcaster/manifest.json custom_components/surfcaster/const.py
-          git commit -m "chore(release): $VERSION [skip ci]"
+          git commit -m "chore(release): $VERSION"
           git tag "$VERSION"
           git push origin main
           git push origin "$VERSION"
